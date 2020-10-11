@@ -21,4 +21,32 @@ CATEGORICAL_COLUMNS = ['sex', 'n_siblings_spouses', 'parch', 'class', 'deck',
 NUMERIC_COLUMNS = ['age', 'fare']
 
 
-feature_columns = 
+# Create Feature columns.
+feature_columns = []
+
+for feature_name in CATEGORICAL_COLUMNS:
+    vocabulary =  datas_train[feature_name].unique()
+    feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
+
+for feature_name in NUMERIC_COLUMNS:
+    feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
+
+# Creating input functions.
+def make_input_fn(data_df, label_df, num_epochs=10, shuffle=True, batch_size=32):
+    def input_function():
+        ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
+        if shuffle:
+            ds = ds.shuffle(1000)
+        ds = ds.batch(batch_size).repeat(num_epochs)
+        return ds
+    return input_function
+
+train_input_fn = make_input_fn(datas_train, label_train)
+eval_input_fn = make_input_fn(datas_eval, label_eval, num_epochs=1, shuffle=False)
+
+# Creating the model.
+linear_est = tf.estimator.LinearClassifier(feature_columns=feature_columns)
+linear_est.train(train_input_fn)
+result = linear_est.evaluate(eval_input_fn)
+clear_output()
+accuracy = result['accuracy']
